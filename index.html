@@ -1,1123 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>ExamCore — State Exam Prep</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<style>
-:root {
-  --bg-0:#080b10; --bg-1:#0d1117; --bg-2:#131920; --bg-3:#1a2330; --bg-4:#1f2a3a;
-  --cyan:#00e5ff; --cyan-dim:#00b8cc;
-  --cyan-muted:rgba(0,229,255,0.12); --cyan-border:rgba(0,229,255,0.25);
-  --amber:#ffb800; --amber-muted:rgba(255,184,0,0.12);
-  --green:#00e676; --green-muted:rgba(0,230,118,0.12);
-  --red:#ff4444; --red-muted:rgba(255,68,68,0.12);
-  --text-0:#f0f6fc; --text-1:#8b9ab5; --text-2:#4a5568;
-  --border:rgba(255,255,255,0.07); --border-bright:rgba(255,255,255,0.14);
-  --font-display:'Syne',sans-serif; --font-mono:'Space Mono',monospace;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:var(--bg-0);color:var(--text-0);
-  font-family:var(--font-display);height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),
-  linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
-  background-size:40px 40px}
-.glow-orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:.06}
-.glow-orb-1{width:300px;height:300px;background:var(--cyan);top:-100px;right:-80px}
-.glow-orb-2{width:250px;height:250px;background:#0057ff;bottom:80px;left:-100px}
-#app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-
-/* SECURITY */
-#denied{position:fixed;inset:0;z-index:9999;background:var(--bg-0);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:2rem;gap:1.5rem}
-.denied-icon{font-size:4rem}
-.denied-title{font-family:var(--font-display);font-size:1.75rem;font-weight:800;
-  color:var(--red);letter-spacing:-.02em}
-.denied-sub{color:var(--text-1);font-family:var(--font-mono);font-size:.8rem;line-height:1.8}
-
-/* HEADER */
-#header{flex-shrink:0;padding:.875rem 1.25rem .75rem;
-  background:linear-gradient(180deg,var(--bg-1) 0%,transparent 100%);
-  border-bottom:1px solid var(--border)}
-.header-row{display:flex;align-items:center;justify-content:space-between}
-.logo{font-family:var(--font-mono);font-size:1rem;font-weight:700;color:var(--cyan);letter-spacing:.1em}
-.logo span{color:var(--text-1);font-weight:400}
-.user-badge{font-family:var(--font-mono);font-size:.65rem;color:var(--text-1);
-  background:var(--bg-3);border:1px solid var(--border);padding:.2rem .6rem;border-radius:999px}
-#progress-bar-wrap{margin-top:.6rem}
-.prog-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}
-.prog-label span{font-family:var(--font-mono);font-size:.65rem;color:var(--text-1)}
-.prog-label strong{font-family:var(--font-mono);font-size:.65rem;color:var(--cyan)}
-.prog-track{height:3px;background:var(--border-bright);border-radius:9px;overflow:hidden}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));
-  border-radius:9px;transition:width .6s cubic-bezier(.4,0,.2,1)}
-
-/* BOTTOM NAV */
-#nav{flex-shrink:0;display:flex;background:var(--bg-1);border-top:1px solid var(--border);
-  padding-bottom:env(safe-area-inset-bottom,0)}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:.25rem;padding:.6rem .25rem;color:var(--text-2);cursor:pointer;border:none;
-  background:none;transition:color .2s;position:relative;font-family:var(--font-display)}
-.nav-btn.active{color:var(--cyan)}
-.nav-btn.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;
-  background:var(--cyan);border-radius:0 0 4px 4px;box-shadow:0 0 12px var(--cyan)}
-.nav-icon{font-size:1.3rem}
-.nav-label{font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
-
-/* MAIN */
-#main{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:none}
-#main::-webkit-scrollbar{display:none}
-.view{display:none;padding:1rem 1rem 1.5rem;animation:fadeUp .25s ease}
-.view.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-/* TABS */
-.tab-bar{display:flex;gap:.5rem;margin-bottom:1rem}
-.tab{flex:1;padding:.5rem .25rem;border-radius:8px;border:1px solid var(--border);
-  font-family:var(--font-display);font-size:.65rem;font-weight:700;letter-spacing:.04em;
-  text-transform:uppercase;cursor:pointer;text-align:center;background:var(--bg-2);
-  color:var(--text-1);transition:all .2s;line-height:1.3}
-.tab.active{background:var(--cyan-muted);border-color:var(--cyan-border);color:var(--cyan)}
-
-/* ACCORDION */
-.disc-panel{display:none}
-.disc-panel.active{display:block}
-.acc-item{border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;
-  overflow:hidden;transition:border-color .2s}
-.acc-item.open{border-color:var(--cyan-border)}
-.acc-q{display:flex;align-items:flex-start;gap:.75rem;padding:.8rem .9rem;
-  cursor:pointer;background:var(--bg-2);user-select:none}
-.acc-q:active{background:var(--bg-3)}
-.acc-num{font-family:var(--font-mono);font-size:.6rem;color:var(--cyan);
-  background:var(--cyan-muted);border:1px solid var(--cyan-border);
-  padding:.15rem .4rem;border-radius:4px;flex-shrink:0;margin-top:.1rem}
-.acc-qtext{font-size:.8rem;font-weight:600;line-height:1.4;flex:1;color:var(--text-0)}
-.acc-arrow{font-size:.75rem;color:var(--text-2);flex-shrink:0;transition:transform .25s;margin-top:.15rem}
-.acc-item.open .acc-arrow{transform:rotate(180deg);color:var(--cyan)}
-.acc-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1);background:var(--bg-1)}
-.acc-body-inner{padding:.75rem .9rem .9rem;border-top:1px solid var(--border)}
-.acc-atext{font-family:var(--font-mono);font-size:.72rem;line-height:1.75;color:var(--text-1);
-  white-space:pre-wrap;word-break:break-word}
-.acc-learned-tag{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--font-mono);
-  font-size:.6rem;color:var(--green);background:var(--green-muted);
-  border:1px solid rgba(0,230,118,.25);padding:.15rem .5rem;border-radius:999px;margin-bottom:.5rem}
-.mark-btn{margin-top:.75rem;padding:.45rem .9rem;border-radius:6px;border:1px solid var(--border);
-  font-family:var(--font-display);font-size:.65rem;font-weight:700;letter-spacing:.05em;
-  cursor:pointer;transition:all .2s;background:var(--bg-3);color:var(--text-1)}
-.mark-btn.learned{border-color:rgba(0,230,118,.4);color:var(--green);background:var(--green-muted)}
-
-/* QUIZ MODE styles */
-.quiz-config{display:flex;flex-direction:column;gap:.75rem;margin-bottom:1rem}
-.quiz-row-label{font-family:var(--font-mono);font-size:.6rem;color:var(--text-2);
-  letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
-.quiz-opts{display:flex;gap:.5rem;flex-wrap:wrap}
-.quiz-opt{font-family:var(--font-mono);font-size:.65rem;padding:.35rem .8rem;border-radius:6px;
-  border:1px solid var(--border-bright);background:var(--bg-3);color:var(--text-1);
-  cursor:pointer;transition:all .2s}
-.quiz-opt.sel{background:var(--cyan-muted);border-color:var(--cyan-border);color:var(--cyan)}
-.quiz-start-btn{width:100%;padding:.9rem;border-radius:10px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--cyan-dim),var(--cyan));color:#000;
-  font-family:var(--font-display);font-size:.85rem;font-weight:800;letter-spacing:.04em;
-  text-transform:uppercase;box-shadow:0 0 30px rgba(0,229,255,.2);transition:all .2s}
-.quiz-start-btn:hover{transform:translateY(-1px);box-shadow:0 4px 40px rgba(0,229,255,.3)}
-.quiz-start-btn:active{transform:scale(.98)}
-.quiz-start-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-
-/* Quiz running */
-.q-progress-wrap{margin-bottom:1rem}
-.q-prog-row{display:flex;justify-content:space-between;margin-bottom:.4rem}
-.q-prog-label{font-family:var(--font-mono);font-size:.6rem;color:var(--text-1);letter-spacing:.06em}
-.q-prog-frac{font-family:var(--font-mono);font-size:.6rem;color:var(--cyan)}
-.q-prog-track{height:3px;background:var(--border-bright);border-radius:9px;overflow:hidden}
-.q-prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));
-  border-radius:9px;transition:width .4s cubic-bezier(.4,0,.2,1)}
-.q-card{background:var(--bg-2);border:1px solid var(--border);border-radius:10px;
-  padding:1rem 1.1rem;margin-bottom:.75rem}
-.q-meta{display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem;flex-wrap:wrap}
-.q-num-badge{font-family:var(--font-mono);font-size:.58rem;color:var(--cyan);
-  background:var(--cyan-muted);border:1px solid var(--cyan-border);padding:.15rem .5rem;border-radius:4px}
-.q-disc-badge{font-family:var(--font-mono);font-size:.58rem;color:var(--text-1);
-  border:1px solid var(--border-bright);padding:.15rem .5rem;border-radius:4px}
-.q-text{font-size:.85rem;font-weight:700;line-height:1.45;color:var(--text-0)}
-.options-list{display:flex;flex-direction:column;gap:.5rem}
-.opt-item{background:var(--bg-3);border:1px solid var(--border-bright);border-radius:8px;
-  padding:.75rem .9rem;cursor:pointer;display:flex;gap:.65rem;align-items:flex-start;
-  transition:all .18s;position:relative;overflow:hidden}
-.opt-item::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .18s;
-  background:linear-gradient(135deg,rgba(0,229,255,.05),transparent)}
-.opt-item:hover::before{opacity:1}
-.opt-item:hover{border-color:rgba(0,229,255,.3)}
-.opt-letter{font-family:var(--font-mono);font-size:.62rem;font-weight:700;color:var(--cyan);
-  background:var(--cyan-muted);border:1px solid var(--cyan-border);border-radius:4px;
-  padding:.15rem .45rem;flex-shrink:0;margin-top:.1rem}
-.opt-text{font-family:var(--font-mono);font-size:.7rem;line-height:1.7;color:var(--text-1)}
-/* Option states after answer */
-.opt-item.correct{background:var(--green-muted);border-color:rgba(0,230,118,.4)!important;
-  animation:correctPulse .4s ease}
-.opt-item.correct .opt-letter{background:rgba(0,230,118,.2);border-color:rgba(0,230,118,.4);color:var(--green)}
-.opt-item.correct .opt-text{color:var(--text-0)}
-.opt-item.wrong{background:var(--red-muted);border-color:rgba(255,68,68,.4)!important;
-  animation:wrongShake .35s ease}
-.opt-item.wrong .opt-letter{background:rgba(255,68,68,.2);border-color:rgba(255,68,68,.4);color:var(--red)}
-.opt-item.wrong .opt-text{color:rgba(255,255,255,.45)}
-.opt-item.disabled{cursor:not-allowed;pointer-events:none}
-.opt-item.reveal-correct{background:rgba(0,230,118,.04);border-color:rgba(0,230,118,.2)!important}
-.opt-item.reveal-correct .opt-letter{background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.25);color:var(--green)}
-@keyframes correctPulse{0%{transform:scale(1)}40%{transform:scale(1.012)}100%{transform:scale(1)}}
-@keyframes wrongShake{0%{transform:translateX(0)}20%{transform:translateX(-6px)}
-  40%{transform:translateX(6px)}60%{transform:translateX(-4px)}
-  80%{transform:translateX(4px)}100%{transform:translateX(0)}}
-
-/* Answer reveal */
-.answer-reveal{background:var(--bg-1);border:1px solid var(--border-bright);border-radius:10px;
-  padding:.9rem 1rem;margin-top:.75rem;display:none;animation:fadeUp .28s ease}
-.answer-reveal.show{display:block}
-.reveal-lbl{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.1em;
-  text-transform:uppercase;margin-bottom:.5rem}
-.reveal-lbl.ok{color:var(--green)}
-.reveal-lbl.bad{color:var(--red)}
-.reveal-body{font-family:var(--font-mono);font-size:.7rem;line-height:1.8;color:var(--text-1)}
-
-/* Quiz nav row */
-.quiz-nav-row{display:flex;gap:.6rem;margin-top:.75rem}
-.qnav-btn{flex:1;padding:.7rem;border-radius:8px;border:1px solid var(--border-bright);
-  background:var(--bg-2);color:var(--text-1);font-family:var(--font-display);
-  font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s;letter-spacing:.03em}
-.qnav-btn:hover{background:var(--bg-3);color:var(--text-0)}
-.qnav-btn.primary{background:linear-gradient(135deg,var(--cyan-dim),var(--cyan));
-  color:#000;border-color:transparent;box-shadow:0 0 18px rgba(0,229,255,.15)}
-.qnav-btn:disabled{opacity:.35;cursor:not-allowed}
-
-/* Quiz results */
-.qr-hero{text-align:center;padding:1.25rem 0 1rem}
-.qr-ring-wrap{width:90px;height:90px;margin:0 auto .75rem;position:relative}
-.qr-ring-wrap svg{transform:rotate(-90deg)}
-.qr-ring-bg{fill:none;stroke:var(--border-bright);stroke-width:8}
-.qr-ring-fill{fill:none;stroke-width:8;stroke-linecap:round;
-  transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1)}
-.qr-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-mono);font-size:1rem;font-weight:700}
-.qr-title{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem}
-.qr-sub{font-family:var(--font-mono);font-size:.65rem;color:var(--text-1)}
-.qr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin:.9rem 0}
-.qr-cell{background:var(--bg-2);border:1px solid var(--border);border-radius:9px;
-  padding:.75rem;text-align:center}
-.qr-val{font-size:1.2rem;font-weight:800;margin-bottom:.15rem}
-.qr-cell-label{font-family:var(--font-mono);font-size:.55rem;color:var(--text-2);
-  text-transform:uppercase;letter-spacing:.05em}
-.qr-review-list{display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem}
-.qr-rev-item{background:var(--bg-2);border:1px solid var(--border);border-radius:9px;overflow:hidden}
-.qr-rev-header{padding:.7rem .9rem;display:flex;align-items:center;gap:.6rem;
-  cursor:pointer;user-select:none}
-.qr-rev-q{font-size:.72rem;font-weight:600;flex:1;line-height:1.3}
-.qr-rev-chevron{font-size:.65rem;color:var(--text-2);transition:transform .2s;flex-shrink:0}
-.qr-rev-item.open .qr-rev-chevron{transform:rotate(180deg)}
-.qr-rev-body{display:none;padding:.75rem .9rem;background:var(--bg-1);
-  border-top:1px solid var(--border)}
-.qr-rev-item.open .qr-rev-body{display:block}
-.qr-rev-section{margin-bottom:.6rem}
-.qr-rev-lbl{font-family:var(--font-mono);font-size:.55rem;text-transform:uppercase;
-  letter-spacing:.08em;margin-bottom:.3rem}
-.qr-rev-lbl.yours{color:var(--amber)}
-.qr-rev-lbl.model{color:var(--green)}
-.qr-rev-ans{font-family:var(--font-mono);font-size:.67rem;line-height:1.75;
-  padding:.6rem .75rem;border-radius:6px}
-.qr-rev-ans.yours{background:rgba(255,184,0,.08);border:1px solid rgba(255,184,0,.2);color:var(--text-1)}
-.qr-rev-ans.model{background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);color:rgba(0,230,118,.85)}
-.qr-actions{display:flex;gap:.6rem;margin-top:1rem}
-
-/* FLASHCARDS */
-.fc-controls{display:flex;gap:.5rem;margin-bottom:.75rem}
-.fc-filter-btn{padding:.35rem .7rem;border-radius:6px;border:1px solid var(--border);
-  font-family:var(--font-display);font-size:.62rem;font-weight:700;
-  letter-spacing:.04em;cursor:pointer;background:var(--bg-2);color:var(--text-1);transition:all .2s}
-.fc-filter-btn.active{background:var(--amber-muted);border-color:rgba(255,184,0,.35);color:var(--amber)}
-.fc-arena{display:flex;flex-direction:column;align-items:center;gap:.9rem}
-.fc-counter{font-family:var(--font-mono);font-size:.68rem;color:var(--text-1)}
-.fc-counter strong{color:var(--cyan)}
-.card-scene{width:100%;max-width:440px;height:260px;perspective:900px;cursor:pointer}
-.card-flip{width:100%;height:100%;position:relative;transform-style:preserve-3d;
-  transition:transform .55s cubic-bezier(.4,0,.2,1)}
-.card-scene.flipped .card-flip{transform:rotateY(180deg)}
-.card-face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;
-  -webkit-backface-visibility:hidden;display:flex;flex-direction:column;padding:1.25rem 1.35rem;overflow:hidden}
-.card-front{background:linear-gradient(145deg,var(--bg-3),var(--bg-2));
-  border:1px solid var(--cyan-border);box-shadow:0 0 30px rgba(0,229,255,.08),inset 0 1px 0 rgba(255,255,255,.05)}
-.card-back{background:linear-gradient(145deg,#0f1e17,#0a1a12);
-  border:1px solid rgba(0,230,118,.3);box-shadow:0 0 30px rgba(0,230,118,.06);
-  transform:rotateY(180deg)}
-.card-eyebrow{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;
-  text-transform:uppercase;margin-bottom:.75rem}
-.card-front .card-eyebrow{color:var(--cyan)}
-.card-back .card-eyebrow{color:var(--green)}
-.card-q{font-size:.95rem;font-weight:700;line-height:1.45;color:var(--text-0);flex:1;overflow-y:auto}
-.card-q::-webkit-scrollbar{display:none}
-.card-a{font-family:var(--font-mono);font-size:.68rem;line-height:1.7;
-  color:rgba(0,230,118,.9);flex:1;overflow-y:auto}
-.card-a::-webkit-scrollbar{display:none}
-.card-hint{font-family:var(--font-mono);font-size:.6rem;color:var(--text-2);
-  align-self:flex-end;margin-top:.5rem}
-.fc-actions{display:flex;gap:.75rem;width:100%;max-width:440px}
-.fc-act-btn{flex:1;padding:.75rem;border-radius:10px;border:1px solid;
-  font-family:var(--font-display);font-size:.72rem;font-weight:700;
-  cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.03em}
-.btn-learned{background:var(--green-muted);border-color:rgba(0,230,118,.35);color:var(--green)}
-.btn-review{background:var(--amber-muted);border-color:rgba(255,184,0,.35);color:var(--amber)}
-.fc-nav-row{display:flex;gap:.75rem;width:100%;max-width:440px}
-.fc-nav-btn{flex:1;padding:.6rem;border-radius:8px;border:1px solid var(--border);
-  font-family:var(--font-display);font-size:.7rem;font-weight:600;
-  cursor:pointer;background:var(--bg-2);color:var(--text-1);transition:all .15s;text-align:center}
-.fc-empty{text-align:center;padding:3rem 1rem;color:var(--text-1);
-  font-family:var(--font-mono);font-size:.75rem;line-height:2}
-
-/* EXAM SIMULATOR */
-.exam-setup{display:flex;flex-direction:column;gap:1rem}
-.exam-setup-card{border:1px solid var(--border);border-radius:14px;padding:1.25rem;background:var(--bg-2)}
-.section-title{font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--text-2);margin-bottom:.75rem}
-.exam-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
-.exam-info-item{background:var(--bg-3);border-radius:8px;padding:.75rem .875rem;border:1px solid var(--border)}
-.exam-info-label{font-family:var(--font-mono);font-size:.58rem;color:var(--text-2);
-  letter-spacing:.05em;margin-bottom:.2rem}
-.exam-info-val{font-size:1.1rem;font-weight:800;color:var(--text-0)}
-.start-btn{width:100%;padding:1rem;border-radius:12px;
-  background:linear-gradient(135deg,var(--cyan-dim),var(--cyan));
-  color:#000;font-family:var(--font-display);font-size:.9rem;font-weight:800;
-  letter-spacing:.04em;border:none;cursor:pointer;box-shadow:0 0 30px rgba(0,229,255,.25);
-  transition:all .2s;text-transform:uppercase}
-.start-btn:active{transform:scale(.98)}
-#exam-running{display:none}
-.exam-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.exam-q-badge{font-family:var(--font-mono);font-size:.65rem;color:var(--cyan);
-  background:var(--cyan-muted);border:1px solid var(--cyan-border);padding:.2rem .6rem;border-radius:4px}
-.timer-display{font-family:var(--font-mono);font-size:1rem;font-weight:700;color:var(--text-0);
-  letter-spacing:.1em;padding:.3rem .75rem;border-radius:8px;background:var(--bg-3);
-  border:1px solid var(--border);transition:color .3s,border-color .3s}
-.timer-display.warning{color:var(--amber);border-color:rgba(255,184,0,.4)}
-.timer-display.danger{color:var(--red);border-color:rgba(255,68,68,.4);animation:pulseBorder 1s infinite}
-@keyframes pulseBorder{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0)}50%{box-shadow:0 0 0 4px rgba(255,68,68,.15)}}
-.exam-q-card{border:1px solid var(--border);border-radius:12px;background:var(--bg-2);
-  padding:1rem 1.1rem;margin-bottom:.75rem}
-.exam-q-disc{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.08em;
-  text-transform:uppercase;margin-bottom:.4rem}
-.exam-q-text{font-size:.85rem;font-weight:600;line-height:1.45;color:var(--text-0);margin-bottom:.75rem}
-.exam-textarea{width:100%;border-radius:8px;border:1px solid var(--border);
-  background:var(--bg-3);color:var(--text-0);font-family:var(--font-mono);
-  font-size:.72rem;line-height:1.6;padding:.65rem .8rem;resize:none;outline:none;
-  transition:border-color .2s;min-height:90px}
-.exam-textarea:focus{border-color:var(--cyan-border)}
-.exam-progress-dots{display:flex;gap:.4rem;margin:.75rem 0}
-.e-dot{width:8px;height:8px;border-radius:50%;background:var(--border-bright);transition:all .3s}
-.e-dot.done{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
-.e-dot.current{background:var(--amber);box-shadow:0 0 6px var(--amber)}
-.exam-nav-row{display:flex;gap:.75rem;margin-top:.75rem}
-.exam-nav-btn{flex:1;padding:.7rem;border-radius:9px;border:1px solid var(--border);
-  font-family:var(--font-display);font-size:.72rem;font-weight:700;cursor:pointer;
-  background:var(--bg-2);color:var(--text-1);transition:all .15s;letter-spacing:.03em}
-.submit-btn{background:linear-gradient(135deg,#ff6b6b,var(--red));
-  color:#fff;border-color:transparent;box-shadow:0 0 20px rgba(255,68,68,.2)}
-#exam-result{display:none}
-.result-header{text-align:center;padding:1.5rem 0 1rem}
-.result-title{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.25rem}
-.result-subtitle{font-family:var(--font-mono);font-size:.7rem;color:var(--text-1)}
-.result-card{border:1px solid var(--border);border-radius:12px;background:var(--bg-2);
-  margin-bottom:.75rem;overflow:hidden}
-.result-q-header{padding:.75rem 1rem;background:var(--bg-3);border-bottom:1px solid var(--border)}
-.result-q-label{font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--text-2);margin-bottom:.2rem}
-.result-q-text{font-size:.8rem;font-weight:600;color:var(--text-0)}
-.result-sections{padding:.75rem 1rem;display:flex;flex-direction:column;gap:.6rem}
-.result-section-label{font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;
-  letter-spacing:.08em;margin-bottom:.3rem}
-.result-user-label{color:var(--amber)}
-.result-model-label{color:var(--green)}
-.result-user-ans{font-family:var(--font-mono);font-size:.68rem;line-height:1.65;
-  color:var(--text-1);white-space:pre-wrap;background:var(--bg-3);
-  padding:.65rem .75rem;border-radius:6px;border:1px solid var(--border)}
-.result-model-ans{font-family:var(--font-mono);font-size:.68rem;line-height:1.65;
-  color:rgba(0,230,118,.85);white-space:pre-wrap;background:rgba(0,230,118,.04);
-  padding:.65rem .75rem;border-radius:6px;border:1px solid rgba(0,230,118,.2)}
-.restart-btn{width:100%;padding:.9rem;border-radius:10px;background:var(--bg-3);
-  color:var(--text-1);font-family:var(--font-display);font-size:.8rem;font-weight:700;
-  border:1px solid var(--border);cursor:pointer;margin-top:.5rem;letter-spacing:.04em;transition:all .2s}
-.hidden{display:none!important}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>ExamCore — State Exam Prep</title>
+  
+  <script src="examData.js"></script>
+  
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  
+  <style>
+    :root {
+      --bg-0: #080b10; --bg-1: #0d1117; --bg-2: #131920; --bg-3: #1a2330; --bg-4: #1f2a3a;
+      --cyan: #00e5ff; --cyan-dim: #00b8cc; --cyan-muted: rgba(0,229,255,0.12); --cyan-border: rgba(0,229,255,0.25);
+      --amber: #ffaa00; --amber-muted: rgba(255,170,0,0.12); --amber-border: rgba(255,170,0,0.25);
+      --green: #00e676; --green-muted: rgba(0,230,118,0.12); --green-border: rgba(0,230,118,0.25);
+      --red: #ff1744; --red-muted: rgba(255,23,68,0.15);
+    }
+    body {
+      background-color: var(--bg-0); color: #f3f4f6; font-family: 'Space Mono', monospace; -webkit-tap-highlight-color: transparent;
+    }
+    .font-syne { font-family: 'Syne', sans-serif; }
+    .nav-btn.active { color: #fff; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .view { display: none; } .view.active { display: block; }
+    .fc-card { perspective: 1000px; height: 280px; }
+    .fc-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; }
+    .fc-card.flipped .fc-inner { transform: rotateY(180deg); }
+    .fc-front, .fc-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; border-radius: 1rem; }
+    .fc-back { transform: rotateY(180deg); }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+    .animate-shake { animation: shake 0.2s ease-in-out 2; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: var(--bg-1); } ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2px; }
+  </style>
 </head>
-<body>
+<body class="antialiased min-h-screen pb-24">
 
-<!-- GLOW ORBS -->
-<div class="glow-orb glow-orb-1"></div>
-<div class="glow-orb glow-orb-2"></div>
-
-<!-- ACCESS DENIED -->
-<div id="denied" class="hidden">
-  <div class="denied-icon">🔒</div>
-  <div class="denied-title">Access Restricted</div>
-  <div class="denied-sub">
-    This app is private and restricted to authorized users only.<br><br>
-    Contact admin: <span style="color:var(--cyan)">@your_username</span>
+  <div id="lock-screen" class="fixed inset-0 z-50 bg-[#080b10] flex flex-col items-center justify-center p-6 text-center hidden">
+    <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl mb-4 shadow-[0_0_20px_rgba(255,23,68,0.2)]">🔒</div>
+    <h1 class="font-syne text-xl font-bold text-gray-200 mb-1 tracking-tight">Access Restricted</h1>
+    <p class="text-xs text-gray-500 max-w-xs leading-relaxed">This secure training material is restricted. Ensure your Telegram ID is whitelisted.</p>
   </div>
-  <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--text-2);margin-top:1rem">
-    ERR_UNAUTHORIZED · ExamCore v2.0
-  </div>
-</div>
 
-<div id="app">
-  <!-- HEADER -->
-  <div id="header">
-    <div class="header-row">
-      <div class="logo">EXAM<span>CORE</span></div>
-      <div class="user-badge" id="user-badge">GUEST</div>
-    </div>
-    <div id="progress-bar-wrap">
-      <div class="prog-label">
-        <span>MASTERY PROGRESS</span>
-        <strong id="prog-text">0 / 90</strong>
+  <div id="app-content" class="max-w-md mx-auto px-4 pt-4">
+    
+    <header class="flex items-center justify-between mb-5 bg-[var(--bg-1)] p-3 rounded-xl border border-white/5 shadow-inner">
+      <div class="flex items-center gap-2.5">
+        <div id="user-avatar" class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-syne font-bold text-sm shadow">?</div>
+        <div>
+          <div id="user-name" class="text-xs font-bold text-gray-200 tracking-tight leading-none mb-0.5">Loading...</div>
+          <div id="user-tier" class="text-[9px] text-[var(--cyan)] font-mono tracking-wider uppercase">Tier: Fetching</div>
+        </div>
       </div>
-      <div class="prog-track">
-        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+      <div class="text-right">
+        <div class="text-[9px] text-gray-500 uppercase tracking-widest font-mono mb-0.5">Readiness</div>
+        <div id="global-progress-txt" class="text-xs font-bold text-emerald-400 font-mono">0%</div>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <!-- MAIN -->
-  <div id="main">
-
-    <!-- ═══ LIBRARY ═══ -->
     <div id="view-library" class="view active">
-      <div class="tab-bar">
-        <div class="tab active" onclick="switchTab(0)" id="tab-0">D1<br>Electrical</div>
-        <div class="tab" onclick="switchTab(1)" id="tab-1">D2<br>КИП</div>
-        <div class="tab" onclick="switchTab(2)" id="tab-2">D3<br>Auto</div>
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="font-syne text-lg font-bold text-white tracking-tight">Core Curriculum</h2>
+        <span class="text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-gray-400 font-mono" id="lib-count-tag">0 Qs</span>
       </div>
-      <div id="disc-panel-0" class="disc-panel active"></div>
-      <div id="disc-panel-1" class="disc-panel"></div>
-      <div id="disc-panel-2" class="disc-panel"></div>
+      <div class="flex gap-1.5 mb-4 overflow-x-auto pb-1" id="lib-discipline-tabs"></div>
+      <div id="library-accordion-container" class="space-y-2 max-h-[calc(100vh-240px)] overflow-y-auto pr-0.5"></div>
     </div>
 
-    <!-- ═══ QUIZ ═══ -->
-    <div id="view-quiz" class="view">
+    <div id="view-flashcards" class="view">
+      <h2 class="font-syne text-lg font-bold text-white tracking-tight mb-1">Active Recall</h2>
+      <p class="text-[11px] text-gray-500 mb-4 leading-normal">Flip the card to test your conceptual knowledge before trying the Simulator.</p>
+      
+      <div id="fc-setup-box" class="bg-[var(--bg-1)] border border-white/5 rounded-xl p-4 text-center">
+        <div class="text-xs text-gray-400 mb-3">Select material for active flashcard review:</div>
+        <div id="fc-discipline-selectors" class="space-y-2"></div>
+      </div>
 
-      <!-- CONFIG SCREEN -->
-      <div id="quiz-config-screen">
-        <div class="quiz-config">
-          <div>
-            <div class="quiz-row-label">Discipline</div>
-            <div class="quiz-opts">
-              <div class="quiz-opt" data-disc="all" onclick="qSelectDisc('all')">All</div>
-              <div class="quiz-opt" data-disc="1" onclick="qSelectDisc(1)">D1 ⚡</div>
-              <div class="quiz-opt" data-disc="2" onclick="qSelectDisc(2)">D2 🔧</div>
-              <div class="quiz-opt" data-disc="3" onclick="qSelectDisc(3)">D3 🤖</div>
+      <div id="fc-active-box" class="hidden">
+        <div class="flex justify-between items-center text-[10px] font-mono text-gray-500 mb-2 px-1">
+          <span id="fc-discipline-title" class="text-[var(--cyan)] uppercase tracking-wider">DISCIPLINE</span>
+          <span id="fc-progress-counter">1 / 10</span>
+        </div>
+        
+        <div class="fc-card w-full cursor-pointer" onclick="flipCard()">
+          <div class="fc-inner">
+            <div class="fc-front bg-[var(--bg-1)] border border-white/5 text-sm font-medium text-gray-200 shadow-xl leading-relaxed overflow-y-auto">
+              <div class="absolute top-2 left-3 text-[9px] font-mono tracking-widest text-gray-600 uppercase">Question</div>
+              <p id="fc-front-text" class="px-2">...</p>
             </div>
-          </div>
-          <div>
-            <div class="quiz-row-label">Questions</div>
-            <div class="quiz-opts">
-              <div class="quiz-opt" data-count="10" onclick="qSelectCount(10)">10</div>
-              <div class="quiz-opt" data-count="20" onclick="qSelectCount(20)">20</div>
-              <div class="quiz-opt" data-count="30" onclick="qSelectCount(30)">30</div>
-              <div class="quiz-opt" data-count="0" onclick="qSelectCount(0)">All</div>
+            <div class="fc-back bg-[var(--bg-2)] border border-white/10 text-xs text-gray-300 shadow-2xl leading-relaxed text-left overflow-y-auto">
+              <div class="absolute top-2 left-3 text-[9px] font-mono tracking-widest text-cyan-500 uppercase">Verified Answer</div>
+              <p id="fc-back-text" class="whitespace-pre-line mt-2 p-2">...</p>
             </div>
           </div>
         </div>
-        <button class="quiz-start-btn" id="quiz-start-btn" onclick="startQuiz()" disabled>
-          ⚡ START QUIZ
+
+        <div class="grid grid-cols-2 gap-2 mt-4">
+          <button onclick="prevCard()" class="py-2.5 rounded-lg bg-[var(--bg-2)] border border-white/5 text-xs text-gray-300 font-bold active:bg-[var(--bg-3)]">← Previous</button>
+          <button onclick="nextCard()" class="py-2.5 rounded-lg bg-[var(--bg-3)] border border-white/10 text-xs text-white font-bold active:bg-[var(--bg-4)]">Next →</button>
+        </div>
+        <button onclick="exitCards()" class="w-full mt-2 py-1.5 text-[10px] font-mono text-gray-500 text-center uppercase tracking-widest">Exit Deck</button>
+      </div>
+    </div>
+
+    <div id="view-exam" class="view">
+      <h2 class="font-syne text-lg font-bold text-white tracking-tight mb-1">Exam Simulator</h2>
+      <p class="text-[11px] text-gray-500 mb-4 leading-normal">Answer 10 random questions from the state database with interactive choice tracking.</p>
+
+      <div id="exam-setup" class="bg-[var(--bg-1)] border border-white/5 rounded-xl p-4">
+        <div class="text-xs font-bold text-gray-300 mb-2">Choose Subject Area:</div>
+        <div id="exam-discipline-selectors" class="space-y-2 mb-4"></div>
+        <button onclick="startExam()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-xs font-bold text-white shadow-lg active:opacity-90 tracking-wide uppercase font-syne">
+          Launch Simulator (10 Qs)
         </button>
       </div>
 
-      <!-- RUNNING QUIZ -->
-      <div id="quiz-running-screen" style="display:none">
-        <div class="q-progress-wrap">
-          <div class="q-prog-row">
-            <span class="q-prog-label">PROGRESS</span>
-            <span class="q-prog-frac" id="q-frac">1 / 10</span>
-          </div>
-          <div class="q-prog-track">
-            <div class="q-prog-fill" id="q-prog-fill" style="width:0%"></div>
-          </div>
+      <div id="exam-running" class="hidden">
+        <div class="flex justify-between items-center text-[10px] font-mono text-gray-500 mb-2">
+          <span id="exam-title-tag" class="text-amber-400 uppercase tracking-wider">EXAM ACTIVE</span>
+          <span id="exam-progress-counter">Question 1 of 10</span>
         </div>
-        <div id="q-card-wrap"></div>
-        <div class="answer-reveal" id="answer-reveal">
-          <div class="reveal-lbl" id="reveal-lbl"></div>
-          <div class="reveal-body" id="reveal-body"></div>
+        <div class="w-full h-1 bg-[var(--bg-2)] rounded-full mb-4 overflow-hidden">
+          <div id="exam-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300" style="width: 10%"></div>
         </div>
-        <div class="quiz-nav-row">
-          <button class="qnav-btn primary" id="q-next-btn" onclick="qNext()" style="display:none">Next →</button>
-          <button class="qnav-btn primary" id="q-finish-btn" onclick="qFinish()" style="display:none">See Results →</button>
+
+        <div class="bg-[var(--bg-1)] border border-white/5 rounded-xl p-4 mb-3">
+          <h3 id="exam-question-text" class="text-sm font-medium text-gray-200 leading-relaxed">Loading question...</h3>
         </div>
+
+        <div id="exam-mcq-options" class="space-y-2 mb-4"></div>
+
+        <div id="exam-explanation-box" class="hidden bg-[var(--bg-2)] border-l-2 border-l-[var(--cyan)] rounded-xl p-4 mb-4 text-[11px] text-gray-300 leading-relaxed max-h-40 overflow-y-auto">
+          <p class="font-bold text-[var(--cyan)] mb-1 font-mono uppercase tracking-wider">Original Lecture Reference:</p>
+          <span id="exam-explanation-text">...</span>
+        </div>
+
+        <button id="exam-action-btn" onclick="nextExamQuestion()" class="hidden w-full py-3 bg-[var(--bg-3)] border border-white/10 text-xs font-bold text-white rounded-xl active:bg-[var(--bg-4)] transition-all">
+          Next Question →
+        </button>
       </div>
 
-      <!-- QUIZ RESULTS -->
-      <div id="quiz-results-screen" style="display:none">
-        <div class="qr-hero">
-          <div class="qr-ring-wrap">
-            <svg viewBox="0 0 90 90" width="90" height="90">
-              <circle class="qr-ring-bg" cx="45" cy="45" r="38"/>
-              <circle class="qr-ring-fill" id="qr-ring" cx="45" cy="45" r="38"
-                stroke-dasharray="239" stroke-dashoffset="239"/>
-            </svg>
-            <div class="qr-pct" id="qr-pct">0%</div>
+      <div id="exam-result" class="hidden text-center bg-[var(--bg-1)] border border-white/5 rounded-xl p-6">
+        <div class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl mx-auto mb-3">🏆</div>
+        <h3 class="font-syne text-base font-bold text-white mb-1">Session Evaluated</h3>
+        <p id="exam-result-discipline" class="text-[10px] font-mono text-gray-500 uppercase tracking-widest mb-4">Discipline</p>
+        
+        <div class="grid grid-cols-2 gap-2 max-w-xs mx-auto mb-5">
+          <div class="bg-[var(--bg-2)] border border-white/5 p-3 rounded-lg">
+            <div class="text-[9px] text-gray-500 uppercase font-mono tracking-wider">Score</div>
+            <div id="exam-result-score" class="text-lg font-bold text-[var(--cyan)] font-mono">0 / 10</div>
           </div>
-          <div class="qr-title" id="qr-title">Results</div>
-          <div class="qr-sub" id="qr-sub"></div>
-        </div>
-        <div class="qr-grid">
-          <div class="qr-cell">
-            <div class="qr-val" style="color:var(--green)" id="qr-correct">0</div>
-            <div class="qr-cell-label">Correct</div>
-          </div>
-          <div class="qr-cell">
-            <div class="qr-val" style="color:var(--red)" id="qr-wrong">0</div>
-            <div class="qr-cell-label">Wrong</div>
-          </div>
-          <div class="qr-cell">
-            <div class="qr-val" style="color:var(--cyan)" id="qr-total">0</div>
-            <div class="qr-cell-label">Total</div>
+          <div class="bg-[var(--bg-2)] border border-white/5 p-3 rounded-lg">
+            <div class="text-[9px] text-gray-500 uppercase font-mono tracking-wider">Accuracy</div>
+            <div id="exam-result-pct" class="text-lg font-bold text-emerald-400 font-mono">0%</div>
           </div>
         </div>
-        <div class="section-title">REVIEW ANSWERS</div>
-        <div class="qr-review-list" id="qr-review-list"></div>
-        <div class="qr-actions">
-          <button class="qnav-btn" onclick="qReset()">← New Quiz</button>
-          <button class="qnav-btn primary" id="qr-retry-btn" onclick="qRetryWrong()">⟳ Retry Wrong</button>
-        </div>
+        <button onclick="exitExam()" class="w-full py-2.5 rounded-lg bg-[var(--bg-2)] border border-white/5 text-xs text-gray-300 font-bold active:bg-[var(--bg-3)]">
+          Return to Setup
+        </button>
       </div>
     </div>
 
-    <!-- ═══ FLASHCARDS ═══ -->
-    <div id="view-flashcards" class="view">
-      <div class="tab-bar" style="margin-bottom:.5rem">
-        <div class="tab active" onclick="switchFCTab(0)" id="fc-tab-0">D1</div>
-        <div class="tab" onclick="switchFCTab(1)" id="fc-tab-1">D2</div>
-        <div class="tab" onclick="switchFCTab(2)" id="fc-tab-2">D3</div>
-        <div class="tab" onclick="switchFCTab(3)" id="fc-tab-3">All</div>
-      </div>
-      <div class="fc-controls">
-        <button class="fc-filter-btn active" id="filter-all" onclick="setFCFilter('all')">All</button>
-        <button class="fc-filter-btn" id="filter-review" onclick="setFCFilter('review')">⏱ Review</button>
-        <button class="fc-filter-btn" id="filter-unlearned" onclick="setFCFilter('unlearned')">New</button>
-      </div>
-      <div class="fc-arena" id="fc-arena"></div>
-    </div>
+  </div>
 
-    <!-- ═══ EXAM SIMULATOR ═══ -->
-    <div id="view-exam" class="view">
-      <div id="exam-setup" class="exam-setup">
-        <div class="exam-setup-card">
-          <div class="section-title">Exam Configuration</div>
-          <div class="exam-info-grid">
-            <div class="exam-info-item">
-              <div class="exam-info-label">QUESTIONS</div>
-              <div class="exam-info-val" style="color:var(--cyan)">3</div>
-            </div>
-            <div class="exam-info-item">
-              <div class="exam-info-label">TIME LIMIT</div>
-              <div class="exam-info-val" style="color:var(--amber)">20:00</div>
-            </div>
-            <div class="exam-info-item">
-              <div class="exam-info-label">DISCIPLINES</div>
-              <div class="exam-info-val" style="font-size:.85rem">All 3</div>
-            </div>
-            <div class="exam-info-item">
-              <div class="exam-info-label">MODE</div>
-              <div class="exam-info-val" style="font-size:.85rem">Random</div>
-            </div>
-          </div>
-        </div>
-        <div class="exam-setup-card" style="padding:1rem 1.1rem">
-          <div class="section-title">How it works</div>
-          <div style="font-family:var(--font-mono);font-size:.68rem;line-height:2;color:var(--text-1)">
-            1 random question from each discipline is selected.<br>
-            Type or review your answer under timed conditions.<br>
-            At the end, compare with the model answer.<br>
-            Good luck — you have got this.
-          </div>
-        </div>
-        <button class="start-btn" onclick="startExam()">⚡ START EXAM SESSION</button>
-      </div>
-      <div id="exam-running">
-        <div class="exam-header">
-          <div class="exam-q-badge" id="exam-q-badge">Q 1 / 3</div>
-          <div class="timer-display" id="timer-display">20:00</div>
-        </div>
-        <div class="exam-progress-dots" id="exam-dots"></div>
-        <div id="exam-questions-wrap"></div>
-        <div class="exam-nav-row">
-          <button class="exam-nav-btn" onclick="examPrev()" id="btn-prev">← Prev</button>
-          <button class="exam-nav-btn" onclick="examNext()" id="btn-next">Next →</button>
-          <button class="exam-nav-btn submit-btn" onclick="submitExam()">Submit</button>
-        </div>
-      </div>
-      <div id="exam-result"></div>
-    </div>
-
-  </div><!-- /main -->
-
-  <!-- BOTTOM NAV -->
-  <nav id="nav">
-    <button class="nav-btn active" id="nav-library" onclick="switchView('library')">
-      <span class="nav-icon">📚</span>
-      <span class="nav-label">Library</span>
+  <nav class="fixed bottom-0 left-0 right-0 h-16 bg-[#080b10]/90 backdrop-blur-md border-t border-white/5 z-40 px-4 flex justify-around items-center max-w-md mx-auto">
+    <button onclick="switchView('library')" id="nav-library" class="nav-btn active flex flex-col items-center justify-center w-20 h-11 rounded-lg border border-transparent text-gray-500 transition-all">
+      <span class="text-sm mb-0.5">📚</span>
+      <span class="text-[9px] font-bold tracking-tight uppercase">Library</span>
     </button>
-    <button class="nav-btn" id="nav-quiz" onclick="switchView('quiz')">
-      <span class="nav-icon">📝</span>
-      <span class="nav-label">Quiz</span>
+    <button onclick="switchView('flashcards')" id="nav-flashcards" class="nav-btn flex flex-col items-center justify-center w-20 h-11 rounded-lg border border-transparent text-gray-500 transition-all">
+      <span class="text-sm mb-0.5">⚡</span>
+      <span class="text-[9px] font-bold tracking-tight uppercase">Cards</span>
     </button>
-    <button class="nav-btn" id="nav-flashcards" onclick="switchView('flashcards')">
-      <span class="nav-icon">🃏</span>
-      <span class="nav-label">Cards</span>
-    </button>
-    <button class="nav-btn" id="nav-exam" onclick="switchView('exam')">
-      <span class="nav-icon">🎯</span>
-      <span class="nav-label">Exam</span>
+    <button onclick="switchView('exam')" id="nav-exam" class="nav-btn flex flex-col items-center justify-center w-20 h-11 rounded-lg border border-transparent text-gray-500 transition-all">
+      <span class="text-sm mb-0.5">🎯</span>
+      <span class="text-[9px] font-bold tracking-tight uppercase">Simulator</span>
     </button>
   </nav>
-</div>
 
-<script>
-// ════════════════════════════════════════════════
-// EXAM DATA (90 questions)
-// ════════════════════════════════════════════════
-'''
+  <script>
+    // Твой оригинальный вайтлист ID из index(3).html
+    const WHITELIST = [5095866716, 1126804134, 977559283, 1209837833, 1250237401, 967170598, 623077047, 1381092929, 123456789];
 
-HTML += EXAMDATA + '\n\n'
-
-HTML += r'''
-// ════════════════════════════════════════════════
-// SECURITY — Edit WHITELIST with your Telegram IDs
-// Get your ID from @userinfobot on Telegram
-// ════════════════════════════════════════════════
-const WHITELIST = [123456789, 987654321]; // ← REPLACE WITH YOUR REAL IDs
-
-function checkAccess() {
-  let uid = null;
-  try {
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      uid = tg.initDataUnsafe.user.id;
-      const u = tg.initDataUnsafe.user;
-      const name = (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '');
-      document.getElementById('user-badge').textContent = name || ('ID:' + uid);
-      tg.expand();
-      tg.setHeaderColor('#080b10');
-      tg.setBackgroundColor('#080b10');
+    // Динамическая сборка дисциплин из внешнего глобального файла examData.js
+    let DISCIPLINES = [];
+    if (typeof examData !== 'undefined') {
+      DISCIPLINES = [0, 1, 2].map(dIdx => {
+        const discNum = dIdx + 1;
+        const names = ['Electrical Engineering & Electronics', 'Instrumentation (КИП)', 'Automation Technology'];
+        const shorts = ['D1', 'D2', 'D3'];
+        const colors = ['var(--cyan)', 'var(--amber)', 'var(--green)'];
+        return {
+          id: dIdx,
+          name: names[dIdx],
+          short: shorts[dIdx],
+          color: colors[dIdx],
+          questions: examData.filter(q => q.discipline === discNum)
+        };
+      });
     }
-  } catch(e) {}
-  if (WHITELIST.length === 0) return; // open mode: set to [] to allow everyone
-  if (!uid || !WHITELIST.includes(uid)) {
-    document.getElementById('app').innerHTML = '';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('denied').classList.remove('hidden');
-  }
-}
-checkAccess();
 
-// ════════════════════════════════════════════════
-// BUILD DISCIPLINES from examData
-// ════════════════════════════════════════════════
-const DISC_META = [
-  { name:'Electrical Engineering & Electronics', short:'D1', color:'var(--cyan)' },
-  { name:'Instrumentation (КИП)',               short:'D2', color:'var(--amber)' },
-  { name:'Automation Technology',               short:'D3', color:'var(--green)' },
-];
-const DISCIPLINES = DISC_META.map((meta, i) => ({
-  id: i,
-  name: meta.name,
-  short: meta.short,
-  color: meta.color,
-  questions: examData.filter(q => q.discipline === i + 1)
-    .map(q => ({ q: q.question, a: q.fullAnswer }))
-}));
+    let currentLibDisc = 0;
+    let expandedLibIdx = null;
+    let fcDisc = 0, fcDeck = [], fcCurrentIdx = 0;
+    let examDisc = 0, examDeck = [], examCurrentQ = 0, examScore = 0, examAnswered = false;
+    let userStats = { highScores: { 0: 0, 1: 0, 2: 0 }, completedCount: 0 };
 
-// ════════════════════════════════════════════════
-// STATE — LocalStorage progress
-// ════════════════════════════════════════════════
-const STORE_KEY = 'examcore_v2';
-function loadState() {
-  try { const r = localStorage.getItem(STORE_KEY); if (r) return JSON.parse(r); } catch(e) {}
-  return { learned: {}, review: {} };
-}
-function saveState() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); } catch(e) {}
-}
-let STATE = loadState();
-function isLearned(dIdx, qIdx) { return !!STATE.learned[dIdx+'_'+qIdx]; }
-function isReview(dIdx, qIdx)  { return !!STATE.review[dIdx+'_'+qIdx]; }
-function toggleLearned(dIdx, qIdx) {
-  const k = dIdx+'_'+qIdx;
-  if (STATE.learned[k]) delete STATE.learned[k];
-  else { STATE.learned[k]=true; delete STATE.review[k]; }
-  saveState(); updateProgress();
-}
-function markReview(dIdx, qIdx) {
-  const k = dIdx+'_'+qIdx;
-  STATE.review[k]=true; delete STATE.learned[k];
-  saveState(); updateProgress();
-}
-function updateProgress() {
-  const learned = Object.keys(STATE.learned).length;
-  const pct = Math.round((learned/90)*100);
-  document.getElementById('prog-text').textContent = learned+' / 90';
-  document.getElementById('prog-fill').style.width = pct+'%';
-}
+    window.addEventListener('DOMContentLoaded', () => {
+      let userId = 123456789; 
+      let nameStr = "Local User";
 
-// ════════════════════════════════════════════════
-// LIBRARY
-// ════════════════════════════════════════════════
-function buildLibrary() {
-  DISCIPLINES.forEach((disc, dIdx) => {
-    const panel = document.getElementById('disc-panel-'+dIdx);
-    panel.innerHTML = disc.questions.map((item, qIdx) => {
-      const learned = isLearned(dIdx, qIdx);
-      return `<div class="acc-item${learned?' open':''}" id="acc-${dIdx}-${qIdx}">
-        <div class="acc-q" onclick="toggleAcc(${dIdx},${qIdx})">
-          <div class="acc-num">Q${String(qIdx+1).padStart(2,'0')}</div>
-          <div class="acc-qtext">${escHtml(item.q)}</div>
-          <div class="acc-arrow">▾</div>
-        </div>
-        <div class="acc-body" id="acc-body-${dIdx}-${qIdx}">
-          <div class="acc-body-inner">
-            ${learned?'<div class="acc-learned-tag">✓ Learned</div>':''}
-            <div class="acc-atext">${escHtml(item.a)}</div>
-            <button class="mark-btn${learned?' learned':''}" id="mark-btn-${dIdx}-${qIdx}"
-              onclick="markLearned(${dIdx},${qIdx},event)">
-              ${learned?'✓ Learned — Unmark':'＋ Mark as Learned'}
-            </button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  });
-}
-function toggleAcc(dIdx, qIdx) {
-  const item = document.getElementById('acc-'+dIdx+'-'+qIdx);
-  const body = document.getElementById('acc-body-'+dIdx+'-'+qIdx);
-  const isOpen = item.classList.contains('open');
-  document.getElementById('disc-panel-'+dIdx).querySelectorAll('.acc-item.open').forEach(el => {
-    el.classList.remove('open');
-    el.querySelector('.acc-body').style.maxHeight = '0';
-  });
-  if (!isOpen) { item.classList.add('open'); body.style.maxHeight = body.scrollHeight+'px'; }
-}
-function markLearned(dIdx, qIdx, e) {
-  e.stopPropagation();
-  toggleLearned(dIdx, qIdx);
-  const learned = isLearned(dIdx, qIdx);
-  const btn = document.getElementById('mark-btn-'+dIdx+'-'+qIdx);
-  btn.textContent = learned ? '✓ Learned — Unmark' : '＋ Mark as Learned';
-  btn.className = 'mark-btn' + (learned?' learned':'');
-  const inner = document.querySelector('#acc-body-'+dIdx+'-'+qIdx+' .acc-body-inner');
-  const existing = inner.querySelector('.acc-learned-tag');
-  if (learned && !existing) {
-    const tag = document.createElement('div');
-    tag.className = 'acc-learned-tag'; tag.textContent = '✓ Learned';
-    inner.insertBefore(tag, inner.firstChild);
-  } else if (!learned && existing) { existing.remove(); }
-  const body = document.getElementById('acc-body-'+dIdx+'-'+qIdx);
-  if (body.style.maxHeight && body.style.maxHeight !== '0px')
-    body.style.maxHeight = body.scrollHeight+'px';
-}
-let activeLibTab = 0;
-function switchTab(idx) {
-  activeLibTab = idx;
-  document.querySelectorAll('[id^="tab-"]').forEach((t,i) => t.classList.toggle('active', i===idx));
-  document.querySelectorAll('[id^="disc-panel-"]').forEach((p,i) => p.classList.toggle('active', i===idx));
-}
+      if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+        const user = tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+        if (user) {
+          userId = user.id;
+          nameStr = user.first_name + (user.last_name ? " " + user.last_name : "");
+        }
+      }
 
-// ════════════════════════════════════════════════
-// QUIZ MODE
-// ════════════════════════════════════════════════
-const LETTERS = ['A','B','C','D'];
-let qDisc = null, qCount = 10, qDeck = [], qIdx = 0, qAnswered = false, qResults = [];
+      // Защита доступа по списку ID
+      if (!WHITELIST.includes(userId)) {
+        document.getElementById('lock-screen').classList.remove('hidden');
+        document.getElementById('app-content').innerHTML = '';
+        return;
+      }
 
-function qSelectDisc(d) {
-  qDisc = d;
-  document.querySelectorAll('.quiz-opt[data-disc]').forEach(el =>
-    el.classList.toggle('sel', el.dataset.disc === String(d)));
-  qCheckReady();
-}
-function qSelectCount(n) {
-  qCount = n;
-  document.querySelectorAll('.quiz-opt[data-count]').forEach(el =>
-    el.classList.toggle('sel', parseInt(el.dataset.count) === n));
-  qCheckReady();
-}
-function qCheckReady() {
-  document.getElementById('quiz-start-btn').disabled = qDisc === null;
-}
-function qBuildDeck() {
-  let pool = qDisc === 'all' ? [...examData]
-    : examData.filter(q => q.discipline === qDisc);
-  for (let i = pool.length-1; i > 0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [pool[i],pool[j]] = [pool[j],pool[i]];
-  }
-  return qCount === 0 ? pool : pool.slice(0, qCount);
-}
-function startQuiz() {
-  qDeck = qBuildDeck(); qIdx = 0; qAnswered = false; qResults = [];
-  document.getElementById('quiz-config-screen').style.display = 'none';
-  document.getElementById('quiz-results-screen').style.display = 'none';
-  document.getElementById('quiz-running-screen').style.display = '';
-  qRenderQuestion();
-}
-function qRenderQuestion() {
-  qAnswered = false;
-  const q = qDeck[qIdx], total = qDeck.length;
-  const pct = Math.round((qIdx/total)*100);
-  document.getElementById('q-frac').textContent = (qIdx+1)+' / '+total;
-  document.getElementById('q-prog-fill').style.width = pct+'%';
-  document.getElementById('answer-reveal').classList.remove('show');
-  document.getElementById('q-next-btn').style.display = 'none';
-  document.getElementById('q-finish-btn').style.display = 'none';
-  const discColors = ['var(--cyan)','var(--amber)','var(--green)'];
-  const dColor = discColors[q.discipline-1];
-  const dName = DISC_META[q.discipline-1].short+' · '+DISC_META[q.discipline-1].name;
-  document.getElementById('q-card-wrap').innerHTML = `
-    <div class="q-card">
-      <div class="q-meta">
-        <span class="q-num-badge">Q${String(qIdx+1).padStart(2,'0')}</span>
-        <span class="q-disc-badge" style="color:${dColor}">${dName}</span>
-      </div>
-      <div class="q-text">${escHtml(q.question)}</div>
-    </div>
-    <div class="options-list" id="opts-wrap">
-      ${q.options.map((opt,i) => `
-        <div class="opt-item" id="opt-${i}" onclick="qSelectOpt(${i})">
-          <div class="opt-letter">${LETTERS[i]}</div>
-          <div class="opt-text">${escHtml(opt)}</div>
-        </div>`).join('')}
-    </div>`;
-}
-function qSelectOpt(idx) {
-  if (qAnswered) return;
-  qAnswered = true;
-  const q = qDeck[qIdx];
-  const correct = idx === q.correctIndex;
-  document.querySelectorAll('.opt-item').forEach((el, i) => {
-    el.classList.add('disabled');
-    if (i === q.correctIndex) el.classList.add(correct && i === idx ? 'correct' : 'reveal-correct');
-    if (i === idx && !correct) el.classList.add('wrong');
-    if (i === idx && correct) el.classList.add('correct');
-  });
-  qResults.push({ q, chosenIdx: idx, correct, chosenText: q.options[idx] });
-  const reveal = document.getElementById('answer-reveal');
-  const lbl = document.getElementById('reveal-lbl');
-  lbl.className = 'reveal-lbl '+(correct?'ok':'bad');
-  lbl.textContent = correct ? '✓ CORRECT' : '✗ INCORRECT — Full Answer:';
-  document.getElementById('reveal-body').textContent = q.fullAnswer;
-  reveal.classList.add('show');
-  const isLast = qIdx === qDeck.length-1;
-  document.getElementById(isLast ? 'q-finish-btn' : 'q-next-btn').style.display = '';
-}
-function qNext() {
-  qIdx++;
-  document.getElementById('answer-reveal').classList.remove('show');
-  qRenderQuestion();
-  document.getElementById('main').scrollTo(0,0);
-}
-function qFinish() {
-  document.getElementById('quiz-running-screen').style.display = 'none';
-  document.getElementById('quiz-results-screen').style.display = '';
-  const total = qResults.length;
-  const correct = qResults.filter(r=>r.correct).length;
-  const wrong = total - correct;
-  const pct = Math.round((correct/total)*100);
-  // ring
-  const circ = 2*Math.PI*38;
-  const ring = document.getElementById('qr-ring');
-  const color = pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)';
-  ring.style.stroke = color;
-  setTimeout(()=>{ ring.style.strokeDashoffset = circ - (pct/100)*circ; }, 80);
-  document.getElementById('qr-pct').textContent = pct+'%';
-  document.getElementById('qr-pct').style.color = color;
-  document.getElementById('qr-correct').textContent = correct;
-  document.getElementById('qr-wrong').textContent = wrong;
-  document.getElementById('qr-total').textContent = total;
-  const title = pct>=90?'Excellent! 🏆':pct>=70?'Good work! 👍':pct>=50?'Keep studying 📚':'Need more practice 💪';
-  document.getElementById('qr-title').textContent = title;
-  document.getElementById('qr-sub').textContent = correct+' correct out of '+total+' questions';
-  document.getElementById('qr-retry-btn').style.display = wrong>0?'':'none';
-  // review list
-  document.getElementById('qr-review-list').innerHTML = qResults.map((r,i) => {
-    const icon = r.correct ? '✅' : '❌';
-    return `<div class="qr-rev-item" id="qrr-${i}">
-      <div class="qr-rev-header" onclick="qToggleRev(${i})">
-        <span>${icon}</span>
-        <span class="qr-rev-q">${escHtml(r.q.question)}</span>
-        <span class="qr-rev-chevron">▾</span>
-      </div>
-      <div class="qr-rev-body">
-        ${!r.correct?`<div class="qr-rev-section">
-          <div class="qr-rev-lbl yours">YOUR ANSWER (${LETTERS[r.chosenIdx]})</div>
-          <div class="qr-rev-ans yours">${escHtml(r.chosenText)}</div>
-        </div>`:''}
-        <div class="qr-rev-section">
-          <div class="qr-rev-lbl model">CORRECT FULL ANSWER</div>
-          <div class="qr-rev-ans model">${escHtml(r.q.fullAnswer)}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('main').scrollTo(0,0);
-}
-function qToggleRev(i) {
-  document.getElementById('qrr-'+i).classList.toggle('open');
-}
-function qRetryWrong() {
-  qDeck = qResults.filter(r=>!r.correct).map(r=>r.q);
-  qIdx = 0; qAnswered = false; qResults = [];
-  document.getElementById('quiz-results-screen').style.display = 'none';
-  document.getElementById('quiz-running-screen').style.display = '';
-  qRenderQuestion();
-}
-function qReset() {
-  document.getElementById('quiz-running-screen').style.display = 'none';
-  document.getElementById('quiz-results-screen').style.display = 'none';
-  document.getElementById('quiz-config-screen').style.display = '';
-}
+      document.getElementById('user-name').innerText = nameStr;
+      document.getElementById('user-avatar').innerText = nameStr.charAt(0).toUpperCase();
 
-// ════════════════════════════════════════════════
-// FLASHCARDS
-// ════════════════════════════════════════════════
-let fcDiscIdx = 3, fcFilter = 'all', fcDeck = [], fcPos = 0;
-function buildFCDeck() {
-  const discRange = fcDiscIdx === 3 ? [0,1,2] : [fcDiscIdx];
-  let pool = [];
-  discRange.forEach(dIdx => {
-    DISCIPLINES[dIdx].questions.forEach((item, qIdx) => {
-      if (fcFilter === 'review' && !isReview(dIdx, qIdx)) return;
-      if (fcFilter === 'unlearned' && isLearned(dIdx, qIdx)) return;
-      pool.push({ dIdx, qIdx, item });
+      const savedStats = localStorage.getItem(`examcore_stats_${userId}`);
+      if (savedStats) { try { userStats = JSON.parse(savedStats); } catch(e){} }
+
+      buildSelectors();
+      updateGlobalProgress();
+      buildLibrary();
     });
-  });
-  return pool;
-}
-function switchFCTab(idx) {
-  fcDiscIdx = idx; fcPos = 0; fcDeck = buildFCDeck();
-  document.querySelectorAll('[id^="fc-tab-"]').forEach((t,i) => t.classList.toggle('active', i===idx));
-  renderFC();
-}
-function setFCFilter(f) {
-  fcFilter = f; fcPos = 0; fcDeck = buildFCDeck();
-  document.querySelectorAll('.fc-filter-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('filter-'+f).classList.add('active');
-  renderFC();
-}
-function renderFC() {
-  const arena = document.getElementById('fc-arena');
-  if (fcDeck.length === 0) {
-    arena.innerHTML = '<div class="fc-empty">No cards in this filter.<br>Try selecting a different filter.</div>';
-    return;
-  }
-  const card = fcDeck[fcPos];
-  const disc = DISCIPLINES[card.dIdx];
-  const learned = isLearned(card.dIdx, card.qIdx);
-  const review  = isReview(card.dIdx, card.qIdx);
-  arena.innerHTML = `
-    <div class="fc-counter">Card <strong>${fcPos+1}</strong> of <strong>${fcDeck.length}</strong></div>
-    <div class="card-scene" id="fc-scene" onclick="flipCard()">
-      <div class="card-flip" id="fc-flip">
-        <div class="card-face card-front">
-          <div class="card-eyebrow">${disc.short} · Q${String(card.qIdx+1).padStart(2,'0')} · TAP TO REVEAL</div>
-          <div class="card-q">${escHtml(card.item.q)}</div>
-          <div class="card-hint">tap to flip →</div>
-        </div>
-        <div class="card-face card-back">
-          <div class="card-eyebrow">ANSWER</div>
-          <div class="card-a">${escHtml(card.item.a)}</div>
-        </div>
-      </div>
-    </div>
-    <div class="fc-actions">
-      <button class="fc-act-btn btn-learned${learned?' outline-active':''}" onclick="fcLearnedClick()">
-        ${learned?'✓ Learned':'✓ Mark Learned'}
-      </button>
-      <button class="fc-act-btn btn-review${review?' outline-active':''}" onclick="fcReviewClick()">
-        ⏱ Review Later
-      </button>
-    </div>
-    <div class="fc-nav-row">
-      <button class="fc-nav-btn" onclick="fcNav(-1)">← Prev</button>
-      <button class="fc-nav-btn" onclick="fcShuffle()">⇄ Shuffle</button>
-      <button class="fc-nav-btn" onclick="fcNav(1)">Next →</button>
-    </div>`;
-}
-function flipCard() { document.getElementById('fc-scene').classList.toggle('flipped'); }
-function fcNav(dir) {
-  fcPos = (fcPos+dir+fcDeck.length)%fcDeck.length;
-  renderFC();
-}
-function fcShuffle() {
-  for (let i=fcDeck.length-1;i>0;i--) {
-    const j=Math.floor(Math.random()*(i+1));
-    [fcDeck[i],fcDeck[j]]=[fcDeck[j],fcDeck[i]];
-  }
-  fcPos=0; renderFC();
-}
-function fcLearnedClick() {
-  const card = fcDeck[fcPos];
-  toggleLearned(card.dIdx, card.qIdx);
-  const newDeck = buildFCDeck();
-  if (newDeck.length===0){fcDeck=newDeck;renderFC();return;}
-  const wasHere = newDeck.findIndex(c=>c.dIdx===card.dIdx&&c.qIdx===card.qIdx);
-  fcDeck=newDeck; fcPos=wasHere>=0?wasHere:Math.min(fcPos,fcDeck.length-1);
-  renderFC();
-}
-function fcReviewClick() {
-  const card = fcDeck[fcPos];
-  markReview(card.dIdx, card.qIdx);
-  const newDeck = buildFCDeck();
-  if (newDeck.length===0){fcDeck=newDeck;renderFC();return;}
-  const wasHere = newDeck.findIndex(c=>c.dIdx===card.dIdx&&c.qIdx===card.qIdx);
-  fcDeck=newDeck; fcPos=wasHere>=0?wasHere:Math.min(fcPos,fcDeck.length-1);
-  renderFC();
-}
 
-// ════════════════════════════════════════════════
-// EXAM SIMULATOR
-// ════════════════════════════════════════════════
-let examQuestions=[], examAnswers=[], examCurrentQ=0, examTimer=null, examSecondsLeft=0;
-const EXAM_DURATION=20*60;
+    function updateGlobalProgress() {
+      const maxPossible = 30;
+      const currentTotal = (userStats.highScores[0] || 0) + (userStats.highScores[1] || 0) + (userStats.highScores[2] || 0);
+      const pct = Math.round((currentTotal / maxPossible) * 100);
+      document.getElementById('global-progress-txt').innerText = pct + '%';
+      
+      let tier = "B-Tier Specialist";
+      if (pct >= 90) tier = "S-Tier Legend 👑";
+      else if (pct >= 65) tier = "A-Tier Expert ⭐";
+      document.getElementById('user-tier').innerText = `Tier: ${tier}`;
+    }
 
-function startExam() {
-  examQuestions = DISCIPLINES.map((disc, dIdx) => {
-    const qIdx = Math.floor(Math.random()*disc.questions.length);
-    return { dIdx, qIdx, item: disc.questions[qIdx] };
-  });
-  examAnswers = examQuestions.map(()=>'');
-  examCurrentQ = 0; examSecondsLeft = EXAM_DURATION;
-  document.getElementById('exam-setup').style.display='none';
-  document.getElementById('exam-result').style.display='none';
-  document.getElementById('exam-running').style.display='block';
-  renderExamQuestion(); startTimer();
-}
-function renderExamQuestion() {
-  const total = examQuestions.length;
-  document.getElementById('exam-q-badge').textContent=`Q ${examCurrentQ+1} / ${total}`;
-  const dots = document.getElementById('exam-dots');
-  dots.innerHTML = examQuestions.map((_,i)=>{
-    let cls='e-dot';
-    if(i<examCurrentQ) cls+=' done';
-    else if(i===examCurrentQ) cls+=' current';
-    return `<div class="${cls}"></div>`;
-  }).join('');
-  const q=examQuestions[examCurrentQ], disc=DISCIPLINES[q.dIdx];
-  const discColors=['var(--cyan)','var(--amber)','var(--green)'];
-  document.getElementById('exam-questions-wrap').innerHTML=`
-    <div class="exam-q-card">
-      <div class="exam-q-disc" style="color:${discColors[q.dIdx]}">${disc.short} · ${disc.name}</div>
-      <div class="exam-q-text">${escHtml(q.item.q)}</div>
-      <textarea class="exam-textarea" id="exam-ans-${examCurrentQ}"
-        placeholder="Type your answer here… (or use as a mental prompt)"
-        rows="4">${escHtml(examAnswers[examCurrentQ])}</textarea>
-    </div>`;
-  document.getElementById('btn-prev').disabled=examCurrentQ===0;
-  document.getElementById('btn-prev').style.opacity=examCurrentQ===0?'0.35':'1';
-  document.getElementById('btn-next').style.display=examCurrentQ<total-1?'':'none';
-}
-function saveCurrentAnswer() {
-  const ta=document.getElementById('exam-ans-'+examCurrentQ);
-  if(ta) examAnswers[examCurrentQ]=ta.value;
-}
-function examPrev(){saveCurrentAnswer();if(examCurrentQ>0){examCurrentQ--;renderExamQuestion();}}
-function examNext(){saveCurrentAnswer();if(examCurrentQ<examQuestions.length-1){examCurrentQ++;renderExamQuestion();}}
-function startTimer() {
-  clearInterval(examTimer); updateTimerDisplay();
-  examTimer=setInterval(()=>{ examSecondsLeft--; updateTimerDisplay();
-    if(examSecondsLeft<=0){clearInterval(examTimer);submitExam();} },1000);
-}
-function updateTimerDisplay() {
-  const el=document.getElementById('timer-display');
-  const m=Math.floor(examSecondsLeft/60), s=examSecondsLeft%60;
-  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  el.className='timer-display';
-  if(examSecondsLeft<=300&&examSecondsLeft>60) el.classList.add('warning');
-  if(examSecondsLeft<=60) el.classList.add('danger');
-}
-function submitExam() {
-  saveCurrentAnswer(); clearInterval(examTimer);
-  document.getElementById('exam-running').style.display='none';
-  const resultEl=document.getElementById('exam-result');
-  resultEl.style.display='block';
-  const timeUsed=EXAM_DURATION-examSecondsLeft;
-  const tm=Math.floor(timeUsed/60), ts=timeUsed%60;
-  resultEl.innerHTML=`
-    <div class="result-header">
-      <div class="result-title">📋 Exam Complete</div>
-      <div class="result-subtitle">Time used: ${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')} · Compare your answers below</div>
-    </div>
-    ${examQuestions.map((q,i)=>{
-      const disc=DISCIPLINES[q.dIdx];
-      const discColors=['var(--cyan)','var(--amber)','var(--green)'];
-      return `<div class="result-card">
-        <div class="result-q-header">
-          <div class="result-q-label" style="color:${discColors[q.dIdx]}">${disc.short} · ${disc.name}</div>
-          <div class="result-q-text">${escHtml(q.item.q)}</div>
-        </div>
-        <div class="result-sections">
-          <div>
-            <div class="result-section-label result-user-label">YOUR ANSWER</div>
-            <div class="result-user-ans">${escHtml(examAnswers[i]||'(no answer provided)')}</div>
-          </div>
-          <div>
-            <div class="result-section-label result-model-label">MODEL ANSWER</div>
-            <div class="result-model-ans">${escHtml(q.item.a)}</div>
+    function buildSelectors() {
+      const libTabs = document.getElementById('lib-discipline-tabs');
+      if(!libTabs) return;
+      
+      libTabs.innerHTML = DISCIPLINES.map(d => `
+        <button onclick="setLibDisc(${d.id})" id="lib-tab-${d.id}" class="px-3 py-1.5 rounded-lg border text-[10px] font-bold tracking-tight whitespace-nowrap transition-all">
+          ${d.short}
+        </button>
+      `).join('');
+
+      document.getElementById('fc-discipline-selectors').innerHTML = DISCIPLINES.map(d => `
+        <button onclick="startCards(${d.id})" class="w-full text-left p-3 rounded-lg bg-[var(--bg-2)] border border-white/5 flex justify-between items-center hover:bg-[var(--bg-3)]">
+          <span class="text-xs font-bold" style="color: ${d.color}">${d.name}</span>
+          <span class="text-[10px] text-gray-500 font-mono">→</span>
+        </button>
+      `).join('');
+
+      document.getElementById('exam-discipline-selectors').innerHTML = DISCIPLINES.map(d => `
+        <button onclick="setExamDisc(${d.id})" id="exam-sel-${d.id}" class="w-full text-left p-3 rounded-lg bg-[var(--bg-2)] border border-white/5 flex justify-between items-center transition-all">
+          <span class="text-xs font-bold text-gray-300">${d.name}</span>
+          <span class="text-[10px] text-gray-500 font-mono">Best: ${userStats.highScores[d.id] || 0}/10</span>
+        </button>
+      `).join('');
+      setExamDisc(0);
+    }
+
+    function switchView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + name).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('nav-' + name).classList.add('active');
+      if (name === 'flashcards') exitCards();
+      if (name === 'exam') exitExam();
+    }
+
+    // ЛОГИКА ВЕРИФИКАЦИИ БИБЛИОТЕКИ
+    function setLibDisc(id) { currentLibDisc = id; buildLibrary(); }
+    function buildLibrary() {
+      DISCIPLINES.forEach(d => {
+        const btn = document.getElementById(`lib-tab-${d.id}`);
+        if(!btn) return;
+        if(d.id === currentLibDisc) {
+          btn.style.background = d.color + '20'; btn.style.borderColor = d.color; btn.style.color = '#fff';
+        } else {
+          btn.style.background = 'transparent'; btn.style.borderColor = d.color + '30'; btn.style.color = d.color;
+        }
+      });
+      const d = DISCIPLINES[currentLibDisc];
+      document.getElementById('lib-count-tag').innerText = `${d ? d.questions.length : 0} Qs`;
+      if(!d) return;
+
+      document.getElementById('library-accordion-container').innerHTML = d.questions.map((q, idx) => `
+        <div class="bg-[var(--bg-1)] border border-white/5 rounded-xl overflow-hidden shadow-sm">
+          <button onclick="toggleLibIdx(${idx})" class="w-full p-3.5 text-left text-xs font-medium text-gray-200 flex justify-between items-start gap-3 active:bg-white/5">
+            <span class="leading-relaxed"><span class="font-mono font-bold" style="color: ${d.color}">${idx+1}.</span> ${escHtml(q.question)}</span>
+            <span id="lib-arr-${idx}" class="text-[10px] text-gray-500 mt-0.5 transition-transform duration-200">▼</span>
+          </button>
+          <div id="lib-body-${idx}" class="hidden p-4 bg-[var(--bg-2)] border-t border-white/5 text-[11px] text-gray-300 leading-relaxed whitespace-pre-line">
+            ${escHtml(q.fullAnswer)}
           </div>
         </div>
-      </div>`;
-    }).join('')}
-    <button class="restart-btn" onclick="resetExam()">↺ New Exam Session</button>`;
-}
-function resetExam() {
-  document.getElementById('exam-result').style.display='none';
-  document.getElementById('exam-setup').style.display='';
-}
+      `).join('');
+      expandedLibIdx = null;
+    }
 
-// ════════════════════════════════════════════════
-// VIEW NAVIGATION
-// ════════════════════════════════════════════════
-let activeView='library';
-function switchView(name) {
-  activeView=name;
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('nav-'+name).classList.add('active');
-  document.getElementById('main').scrollTo(0,0);
-  if(name==='flashcards'){fcDeck=buildFCDeck();renderFC();}
-  if(name==='quiz'){
-    if(document.getElementById('quiz-running-screen').style.display!=='none') return;
-    if(document.getElementById('quiz-results-screen').style.display!=='none') return;
-  }
-  if(name==='exam'){
-    if(document.getElementById('exam-running').style.display==='block') return;
-    document.getElementById('exam-result').style.display='none';
-    document.getElementById('exam-setup').style.display='';
-  }
-}
+    function toggleLibIdx(idx) {
+      const body = document.getElementById(`lib-body-${idx}`);
+      const arrow = document.getElementById(`lib-arr-${idx}`);
+      if(!body) return;
+      if (expandedLibIdx !== null && expandedLibIdx !== idx) {
+        document.getElementById(`lib-body-${expandedLibIdx}`).classList.add('hidden');
+        document.getElementById(`lib-arr-${expandedLibIdx}`).style.transform = 'rotate(0deg)';
+      }
+      if (body.classList.contains('hidden')) {
+        body.classList.remove('hidden'); arrow.style.transform = 'rotate(180deg)'; expandedLibIdx = idx;
+      } else {
+        body.classList.add('hidden'); arrow.style.transform = 'rotate(0deg)'; expandedLibIdx = null;
+      }
+    }
 
-// ════════════════════════════════════════════════
-// UTILS
-// ════════════════════════════════════════════════
-function escHtml(s) {
-  if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+    // ЛОГИКА ФЛЭШ-КАРТОЧЕК
+    function startCards(discId) {
+      fcDisc = discId;
+      const allQs = DISCIPLINES[discId].questions;
+      if(allQs.length === 0) return;
+      fcDeck = [...allQs].sort(() => 0.5 - Math.random()).slice(0, 10);
+      fcCurrentIdx = 0;
+      document.getElementById('fc-setup-box').classList.add('hidden');
+      document.getElementById('fc-active-box').classList.remove('hidden');
+      document.getElementById('fc-discipline-title').innerText = DISCIPLINES[discId].name;
+      document.getElementById('fc-discipline-title').style.color = DISCIPLINES[discId].color;
+      renderFC();
+    }
+    function renderFC() {
+      document.querySelector('.fc-card').classList.remove('flipped');
+      document.getElementById('fc-progress-counter').innerText = `${fcCurrentIdx + 1} / ${fcDeck.length}`;
+      document.getElementById('fc-front-text').innerText = fcDeck[fcCurrentIdx].question;
+      document.getElementById('fc-back-text').innerText = fcDeck[fcCurrentIdx].fullAnswer;
+    }
+    function flipCard() { document.querySelector('.fc-card').classList.toggle('flipped'); }
+    function nextCard() { if (fcCurrentIdx < fcDeck.length - 1) { fcCurrentIdx++; renderFC(); } }
+    function prevCard() { if (fcCurrentIdx > 0) { fcCurrentIdx--; renderFC(); } }
+    function exitCards() {
+      document.getElementById('fc-setup-box').classList.remove('hidden');
+      document.getElementById('fc-active-box').classList.add('hidden');
+    }
 
-// ════════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════════
-buildLibrary();
-updateProgress();
-fcDeck = buildFCDeck();
-qSelectCount(10);
-</script>
+    // ЛОГИКА КВИЗ-ТЕСТА (ЭКЗАМЕНА)
+    function setExamDisc(id) {
+      examDisc = id;
+      DISCIPLINES.forEach(d => {
+        const btn = document.getElementById(`exam-sel-${d.id}`);
+        if(!btn) return;
+        if(d.id === id) { btn.style.borderColor = d.color; btn.style.background = d.color + '08'; }
+        else { btn.style.borderColor = ''; btn.style.background = ''; }
+      });
+    }
+
+    function startExam() {
+      const dataset = DISCIPLINES[examDisc].questions;
+      if(!dataset || dataset.length === 0) { alert("Question database empty or not loaded!"); return; }
+      examDeck = [...dataset].sort(() => 0.5 - Math.random()).slice(0, 10);
+      examCurrentQ = 0; examScore = 0;
+      document.getElementById('exam-title-tag').innerText = DISCIPLINES[examDisc].name;
+      document.getElementById('exam-title-tag').style.color = DISCIPLINES[examDisc].color;
+      document.getElementById('exam-setup').style.display = 'none';
+      document.getElementById('exam-result').style.display = 'none';
+      document.getElementById('exam-running').style.display = 'block';
+      renderExamQuestion();
+    }
+
+    function renderExamQuestion() {
+      examAnswered = false;
+      document.getElementById('exam-action-btn').classList.add('hidden');
+      document.getElementById('exam-explanation-box').classList.add('hidden');
+      const currentQ = examDeck[examCurrentQ];
+      const progressPct = (examCurrentQ / 10) * 100;
+      document.getElementById('exam-progress-bar').style.width = `${progressPct + 10}%`;
+      document.getElementById('exam-progress-counter').innerText = `Question ${examCurrentQ + 1} of 10`;
+      document.getElementById('exam-question-text').innerText = currentQ.question;
+
+      const optionsContainer = document.getElementById('exam-mcq-options');
+      optionsContainer.innerHTML = '';
+      currentQ.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3.5 bg-[var(--bg-1)] border border-white/5 rounded-xl text-xs leading-relaxed text-gray-300 transition-all active:scale-[0.99] block cursor-pointer";
+        btn.innerText = opt;
+        btn.onclick = () => selectMCQOption(idx, btn);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function selectMCQOption(selIdx, clickedBtn) {
+      if (examAnswered) return;
+      examAnswered = true;
+      const currentQ = examDeck[examCurrentQ];
+      const buttons = document.getElementById('exam-mcq-options').getElementsByTagName('button');
+
+      buttons[currentQ.correctIndex].classList.remove("bg-[var(--bg-1)]", "text-gray-300");
+      buttons[currentQ.correctIndex].classList.add("bg-emerald-950/60", "border-[var(--green)]", "text-[var(--green)]", "font-bold");
+
+      if (selIdx === currentQ.correctIndex) { examScore++; } 
+      else {
+        clickedBtn.classList.remove("bg-[var(--bg-1)]", "text-gray-300");
+        clickedBtn.classList.add("bg-red-950/50", "border-[var(--red)]", "text-[var(--red)]", "animate-shake");
+      }
+
+      document.getElementById('exam-explanation-text').innerText = currentQ.fullAnswer;
+      document.getElementById('exam-explanation-box').classList.remove('hidden');
+      const actBtn = document.getElementById('exam-action-btn');
+      actBtn.classList.remove('hidden');
+      actBtn.innerText = (examCurrentQ === 9) ? "Finish Evaluation →" : "Next Question →";
+    }
+
+    function nextExamQuestion() {
+      if (examCurrentQ < 9) { examCurrentQ++; renderExamQuestion(); } 
+      else { showExamResults(); }
+    }
+
+    function showExamResults() {
+      document.getElementById('exam-running').style.display = 'none';
+      document.getElementById('exam-result').style.display = 'block';
+      if (examScore >= 8) { confetti({ particleCount: 140, spread: 80, origin: { y: 0.65 }, colors: ['#00e5ff', '#ffaa00', '#00e676'] }); }
+      if (examScore > (userStats.highScores[examDisc] || 0)) { userStats.highScores[examDisc] = examScore; }
+      userStats.completedCount++;
+      
+      let uId = 123456789;
+      if(window.Telegram && window.Telegram.WebApp.initDataUnsafe.user) uId = window.Telegram.WebApp.initDataUnsafe.user.id;
+      localStorage.setItem(`examcore_stats_${uId}`, JSON.stringify(userStats));
+
+      document.getElementById('exam-result-discipline').innerText = DISCIPLINES[examDisc].name;
+      document.getElementById('exam-result-score').innerText = `${examScore} / 10`;
+      document.getElementById('exam-result-pct').innerText = `${examScore * 10}%`;
+      updateGlobalProgress(); buildSelectors();
+    }
+
+    function exitExam() {
+      document.getElementById('exam-running').style.display = 'none';
+      document.getElementById('exam-result').style.display = 'none';
+      document.getElementById('exam-setup').style.display = 'block';
+    }
+
+    function escHtml(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
 </body>
 </html>
